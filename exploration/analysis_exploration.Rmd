@@ -1,8 +1,73 @@
 
 #Can nonlinear statistical models improve short-horizon blood glucose prediction using routinely available features?
 
+```{r}
+#installing packages
+# install.packages("tidyverse")
+# install.packages("lubridate")
+# install.packages("skimr")
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(skimr)
+library(GGally)
+library(mgcv)
+```
+
+
 
 ```{r}
 #Starting
+
+data <- read.csv("C:/Users/Acer/OneDrive/Desktop/Research/bg_gam_paper/data/bg_data.csv")
+
+head(data)
 ```
+```{r}
+str(data)
+```
+```{r}
+#Summary statistics
+
+summary(data)
+
+skim(data)
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
