@@ -38,21 +38,62 @@ skim(data)
 
 
 ```{r}
+#checking null values
+colSums(is.na(data))
 ```
 
 
 ```{r}
+#missing value percentage
+colMeans(is.na(data))*100
 ```
 
 
 ```{r}
+#distribution of each variable
+data %>%
+  pivot_longer(cols = everything()) %>%
+  ggplot(aes(value)) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  facet_wrap(~name, scales = "free") +
+  theme_minimal()
 ```
 
 
 ```{r}
+#Coorelation matrix
+# Correlation matrix
+cor_mat <- cor(data, use = "complete.obs")
+
+# Pairwise plots
+ggpairs(data)
+
 ```
 
 
+```{r}
+#Time series awarness
+data %>%
+  mutate(index = row_number()) %>%
+  ggplot(aes(index, bg.1.00)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Blood Glucose One Hour Ahead Over Time",
+       x = "Time Index",
+       y = "bg+1:00")
+
+```
+```{r}
+#Non linearity check
+#imp for gam justification
+data %>%
+  ggplot(aes(bg_mean, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme_minimal() +
+  labs(title = "Nonlinear Relationship Between bg_mean and bg+1:00")
+
+```
 
 
 
