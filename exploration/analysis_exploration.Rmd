@@ -127,6 +127,25 @@ data <- data %>%
 
 ```
 
+```{r}
+# Check remaining missing values
+colSums(is.na(data))
+
+```
+```{r}
+ggplot(data, aes(hr_mean, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  facet_wrap(~hr_missing, labeller = labeller(hr_missing = c("0" = "Observed HR", "1" = "Imputed HR"))) +
+  theme_minimal() +
+  labs(
+    title = "Relationship Between Heart Rate and Future Glucose",
+    x = "hr_mean",
+    y = "bg+1:00"
+  )
+
+```
+
+
 
 
 
