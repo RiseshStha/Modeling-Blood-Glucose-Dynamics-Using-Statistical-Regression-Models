@@ -72,6 +72,73 @@ ggpairs(data)
 
 ```
 
+
+
+```{r}
+#Time series awarness
+data %>%
+  mutate(index = row_number()) %>%
+  ggplot(aes(index, bg.1.00)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Blood Glucose One Hour Ahead Over Time",
+       x = "Time Index",
+       y = "bg+1:00")
+
+```
+
+```{r}
+#Non linearity check
+#imp for gam justification
+data %>%
+  ggplot(aes(bg_mean, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme_minimal() +
+  labs(title = "Nonlinear Relationship Between bg_mean and bg+1:00")
+
+```
+
+```{r}
+#Handling Missing Data of hr_mean
+# Missingness percentage
+missing_pct <- mean(is.na(data$hr_mean)) * 100
+missing_pct
+
+```
+```{r}
+# create missing indicator 
+data <- data %>%
+  mutate(
+    hr_missing = ifelse(is.na(hr_mean), 1, 0)
+  )
+
+```
+
+```{r}
+# Median imputation 
+# median is preferred because of skewness of data
+hr_median <- median(data$hr_mean, na.rm = TRUE)
+
+data <- data %>%
+  mutate(
+    hr_mean = ifelse(is.na(hr_mean), hr_median, hr_mean)
+  )
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```{r}
 #Time series awarness
 plot_timeseries <- function(vars){
@@ -95,21 +162,6 @@ vars2 <- c("hr_mean", "steps_sum", "cals_sum")
 
 plot_timeseries(vars1)
 plot_timeseries(vars2)
-```
-
-
-
-```{r}
-#Time series awarness
-data %>%
-  mutate(index = row_number()) %>%
-  ggplot(aes(index, bg.1.00)) +
-  geom_line() +
-  theme_minimal() +
-  labs(title = "Blood Glucose One Hour Ahead Over Time",
-       x = "Time Index",
-       y = "bg+1:00")
-
 ```
 
 ```{r}
@@ -228,26 +280,6 @@ ggplot(data, aes(x = index)) +
   )
 
 ```
-
-
-
-```{r}
-#Non linearity check
-#imp for gam justification
-data %>%
-  ggplot(aes(bg_mean, bg.1.00)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "loess", se = FALSE) +
-  theme_minimal() +
-  labs(title = "Nonlinear Relationship Between bg_mean and bg+1:00")
-
-```
-
-
-
-
-
-
 
 
 
