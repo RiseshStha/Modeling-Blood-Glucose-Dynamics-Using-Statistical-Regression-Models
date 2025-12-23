@@ -14,6 +14,8 @@ library(lubridate)
 library(skimr)
 library(GGally)
 library(mgcv)
+library(zoo)
+
 ```
 
 
@@ -61,7 +63,7 @@ data %>%
 
 
 ```{r}
-#Coorelation matrix
+#Correlation matrix
 # Correlation matrix
 cor_mat <- cor(data, use = "complete.obs")
 
@@ -69,6 +71,32 @@ cor_mat <- cor(data, use = "complete.obs")
 ggpairs(data)
 
 ```
+
+```{r}
+#Time series awarness
+plot_timeseries <- function(vars){
+  df1 <- data.frame(Index = 1:nrow(data), data[, vars, drop = FALSE])
+  names(df1)[-1] <- vars
+
+  df1_long <- reshape2::melt(df1, id.vars = "Index")
+  
+  ggplot(df1_long, aes(Index, value)) +
+    geom_line() +
+    facet_wrap(~variable, ncol = 1, scales = "free_y", drop = FALSE) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          strip.text = element_text(size = 14, face = "bold"))
+}
+
+
+#breaking six input variables into two plot for better visuallization
+vars1 <- c("bg_mean", "insulin_sum", "carbs_sum")
+vars2 <- c("hr_mean", "steps_sum", "cals_sum")
+
+plot_timeseries(vars1)
+plot_timeseries(vars2)
+```
+
 
 
 ```{r}
@@ -83,6 +111,126 @@ data %>%
        y = "bg+1:00")
 
 ```
+
+```{r}
+#Rolling average 
+vars <- c(
+  "bg_mean",
+  "hr_mean",
+  "insulin_sum",
+  "steps_sum",
+  "carbs_sum",
+  "cals_sum"
+)
+
+window_size <- 1000
+
+data <- data %>%
+  mutate(index = row_number())
+
+for (v in vars) {
+  data[[paste0(v, "_roll_1000")]] <-
+    rollmean(data[[v]], k = window_size, fill = NA, align = "center")
+}
+
+
+```
+
+```{r}
+#Rolling averages for all independent variables
+#for bg_mean
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = bg_mean), alpha = 0.2) +
+  geom_line(aes(y = bg_mean_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "bg_mean: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "bg_mean"
+  )
+
+#for hr_mean
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = hr_mean), alpha = 0.2) +
+  geom_line(aes(y = hr_mean_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "hr_mean: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "hr_mean"
+  )
+
+#for insulin_sum
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = insulin_sum), alpha = 0.2) +
+  geom_line(aes(y = insulin_sum_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "insulin_sum: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "insulin_sum"
+  )
+
+#for steps_sum
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = steps_sum), alpha = 0.2) +
+  geom_line(aes(y = steps_sum_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "steps_sum: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "steps_sum"
+  )
+
+#for carbs_sum
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = carbs_sum), alpha = 0.2) +
+  geom_line(aes(y = carbs_sum_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "carbs_sum: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "carbs_sum"
+  )
+
+#for cals_sum
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = cals_sum), alpha = 0.2) +
+  geom_line(aes(y = cals_sum_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "cals_sum: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "cals_sum"
+  )
+```
+
+
+```{r}
+data <- data %>%
+  mutate(
+    index = row_number(),
+    bg_roll_1000 = rollmean(bg.1.00, k = 1000, fill = NA, align = "center")
+  )
+
+```
+
+
+```{r}
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = bg.1.00), alpha = 0.2) +
+  geom_line(aes(y = bg_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "Blood Glucose One Hour Ahead: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "bg+1:00"
+  )
+
+```
+
+
+
 ```{r}
 #Non linearity check
 #imp for gam justification
