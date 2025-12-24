@@ -178,7 +178,7 @@ data %>%
 
 ```
 ```{r}
-ggplot(df, aes(carbs_log, bg.1.00)) +
+ggplot(data, aes(carbs_log, bg.1.00)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "loess", se = FALSE) +
   theme_minimal() +
@@ -188,8 +188,41 @@ ggplot(df, aes(carbs_log, bg.1.00)) +
     y = "bg+1:00"
   )
 
+ggplot(data, aes(cals_log, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme_minimal() +
+  labs(
+    title = "Relationship Between log(Calories) and Future Glucose",
+    x = "log(1 + cals_sum)",
+    y = "bg+1:00"
+  )
+
+ggplot(data, aes(steps_log, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme_minimal() +
+  labs(
+    title = "Relationship Between log(Steps) and Future Glucose",
+    x = "log(1 + steps_sum)",
+    y = "bg+1:00"
+  )
+
 ```
 
+```{r}
+mean(data$carbs_sum == 0) * 100
+mean(data$steps_sum == 0) * 100
+mean(data$cals_sum == 0) * 100
+
+
+# < 60% zeros → perfectly fine
+# 
+# 60–85% zeros → still acceptable, but note it
+# 
+# > 85% zeros → consider zero-indicator (optional)
+
+```
 
 
 
