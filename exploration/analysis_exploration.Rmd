@@ -144,7 +144,51 @@ ggplot(data, aes(hr_mean, bg.1.00)) +
   )
 
 ```
+```{r}
+#Now log transforming the right skewed data
+# Reduce right skewness
+# 
+# Stabilize variance
+# 
+# Improve model behavior (especially LR & NLR)
+# 
+# Without distorting clinical meaning
+# log1p(x) = log(1 + x)
 
+#applying log transformation 
+data <- data %>%
+  mutate(
+    steps_log = log1p(steps_sum),
+    carbs_log   = log1p(carbs_sum),
+    cals_log    = log1p(cals_sum)
+  )
+
+
+```
+
+
+```{r}
+data %>%
+  select(steps_sum, steps_log, carbs_sum, carbs_log, cals_sum, cals_log) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(value)) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  facet_wrap(~name, scales = "free") +
+  theme_minimal()
+
+```
+```{r}
+ggplot(df, aes(carbs_log, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme_minimal() +
+  labs(
+    title = "Relationship Between log(Carbohydrates) and Future Glucose",
+    x = "log(1 + carbs_sum)",
+    y = "bg+1:00"
+  )
+
+```
 
 
 
