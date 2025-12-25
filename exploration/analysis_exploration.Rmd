@@ -224,6 +224,31 @@ mean(data$cals_sum == 0) * 100
 
 ```
 
+```{r}
+#Time-Aware Spliting 
+head(data)
+tail(data)
+
+```
+
+
+```{r}
+n <- nrow(data)
+split_idx <- floor(0.7 * n)
+
+train_data <- data[1:split_idx, ]
+test_data  <- data[(split_idx + 1):n, ]
+
+nrow(train_data)
+nrow(test_data)
+
+
+```
+
+
+
+
+
 
 
 
