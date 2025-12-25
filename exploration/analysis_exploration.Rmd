@@ -245,6 +245,20 @@ nrow(test_data)
 
 ```
 
+```{r}
+ggplot() +
+  geom_line(data = train_data, aes(x = seq_along(bg.1.00), y = bg.1.00),
+            color = "blue", alpha = 0.6) +
+  geom_line(data = test_data, aes(x = split_idx + seq_along(bg.1.00), y = bg.1.00),
+            color = "red", alpha = 0.6) +
+  theme_minimal() +
+  labs(
+    title = "Time-Aware Train–Test Split of Future Glucose",
+    x = "Time Index",
+    y = "bg+1:00"
+  )
+
+```
 
 
 
