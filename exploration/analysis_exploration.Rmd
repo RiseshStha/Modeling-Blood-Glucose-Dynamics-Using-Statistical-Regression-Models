@@ -285,6 +285,42 @@ plot(lm_baseline, which = 2)
 
 ```
 
+```{r}
+#Predict on Test Data
+
+test_pred_lm <- predict(lm_baseline, newdata = test_data)
+
+```
+
+
+```{r}
+# Evaluate Performance on Test Set
+rmse_lm <- sqrt(mean((test_data$bg.1.00 - test_pred_lm)^2))
+mae_lm  <- mean(abs(test_data$bg.1.00 - test_pred_lm))
+
+rmse_lm
+mae_lm
+
+```
+```{r}
+# Visualization: Predicted vs Observed
+
+ggplot(data.frame(
+  observed = test_data$bg.1.00,
+  predicted = test_pred_lm
+), aes(observed, predicted)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  theme_minimal() +
+  labs(
+    title = "Linear Regression: Observed vs Predicted (Test Set)",
+    x = "Observed bg+1:00",
+    y = "Predicted bg+1:00"
+  )
+
+```
+
+
 
 
 
