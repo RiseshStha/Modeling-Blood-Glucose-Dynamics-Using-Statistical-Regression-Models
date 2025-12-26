@@ -273,6 +273,17 @@ lm_baseline <- lm(
 summary(lm_baseline)
 
 ```
+```{r}
+#Assumption Diagnostics 
+
+#Residuals vs Fitted
+plot(lm_baseline, which = 1)
+
+#QQ Plot
+plot(lm_baseline, which = 2)
+
+
+```
 
 
 
