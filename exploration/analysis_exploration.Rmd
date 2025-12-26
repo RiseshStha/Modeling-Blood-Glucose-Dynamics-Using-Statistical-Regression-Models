@@ -259,6 +259,20 @@ ggplot() +
   )
 
 ```
+```{r}
+#Building linear regression baseline
+# Output = bg.1.00, 
+# Inputs = bg_mean, insulin_sums, carbs_sum, hr_mean, steps_sum, cals_sum
+
+lm_baseline <- lm(
+  bg.1.00 ~ bg_mean + hr_mean + hr_missing +
+            insulin_sum + carbs_log + steps_log + cals_log,
+  data = train_data
+)
+
+summary(lm_baseline)
+
+```
 
 
 
