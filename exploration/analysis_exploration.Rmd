@@ -345,7 +345,20 @@ plot(gam_model, shade = TRUE, seWithMean = TRUE)
 par(mfrow = c(1, 1))
 
 ```
+```{r}
+#GAM on test data
+test_pred_gam <- predict(gam_model, newdata = test_data)
 
+```
+
+```{r}
+rmse_gam <- sqrt(mean((test_data$bg.1.00 - test_pred_gam)^2))
+mae_gam  <- mean(abs(test_data$bg.1.00 - test_pred_gam))
+
+rmse_gam
+mae_gam
+
+```
 
 
 
