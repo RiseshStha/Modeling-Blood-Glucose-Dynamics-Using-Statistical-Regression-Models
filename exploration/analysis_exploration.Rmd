@@ -319,6 +319,25 @@ ggplot(data.frame(
   )
 
 ```
+```{r}
+#Fit GAM model in training data
+gam_model <- gam(
+  bg.1.00 ~
+    s(bg_mean, k = 10) +
+    s(hr_mean, k = 10) +
+    hr_missing +
+    s(insulin_sum, k = 10) +
+    s(carbs_log, k = 10) +
+    s(steps_log, k = 10) +
+    s(cals_log, k = 10),
+  data = train_data,
+  method = "REML"
+)
+
+
+summary(gam_model)
+
+```
 
 
 
