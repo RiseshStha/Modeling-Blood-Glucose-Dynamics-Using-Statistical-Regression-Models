@@ -359,6 +359,22 @@ rmse_gam
 mae_gam
 
 ```
+```{r}
+ggplot(data.frame(
+  observed = test_data$bg.1.00,
+  predicted = test_pred_gam
+), aes(observed, predicted)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  theme_minimal() +
+  labs(
+    title = "GAM: Observed vs Predicted (Test Set)",
+    x = "Observed bg+1:00",
+    y = "Predicted bg+1:00"
+  )
+
+
+```
 
 
 
