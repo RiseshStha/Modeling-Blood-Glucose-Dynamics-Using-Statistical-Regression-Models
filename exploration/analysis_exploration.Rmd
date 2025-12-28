@@ -339,6 +339,12 @@ summary(gam_model)
 
 ```
 
+```{r}
+par(mfrow = c(2, 3))
+plot(gam_model, shade = TRUE, seWithMean = TRUE)
+par(mfrow = c(1, 1))
+
+```
 
 
 
