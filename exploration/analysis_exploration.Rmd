@@ -382,25 +382,59 @@ ggplot(data.frame(
 ```{r}
 coef(lm_baseline)
 ```
+
+```{r}
+# b1 (scale) and b2 (power) are highly correlated
+# At initial values (especially b2 = 1), the gradient becomes singular
+#So scale bg_mean 
+bg_mean_mean <- mean(train_data$bg_mean)
+bg_mean_sd   <- sd(train_data$bg_mean)
+
+train_data <- train_data %>%
+  mutate(bg_mean_sc = (bg_mean - bg_mean_mean) / bg_mean_sd)
+
+test_data <- test_data %>%
+  mutate(bg_mean_sc = (bg_mean - bg_mean_mean) / bg_mean_sd)
+
+```
+
+
 ```{r}
 
 # bgt+1​=​β0​+β1​(bg_mean)β2​+β3​log(1+carbs)−β4​insulin+β5​hr_mean+β6​hr_missing−β7​steps_log.​
 start_vals <- list(
-  b0 = coef(lm_baseline)[1],                 # intercept
-  b1 = coef(lm_baseline)["bg_mean"],         # scale for bg_mean^b2
-  b2 = 1,                                   # exponent (nonlinearity)
-  b3 = coef(lm_baseline)["carbs_log"],       # log(1 + carbs)
-  b4 = coef(lm_baseline)["insulin_sums"],    # insulin (subtracted in model)
-  b5 = coef(lm_baseline)["hr_mean"],         # heart rate mean
-  b6 = coef(lm_baseline)["hr_missing"],      # HR missing indicator
-  b7 = coef(lm_baseline)["steps_log"]        # steps (subtracted in model)
+  b0 = mean(train_data$bg.1.00, na.rm = TRUE),  # baseline glucose
+  b1 = 1,                                      # scale for bg_mean^b2
+  b2 = 0.1,                                    # nonlinear exponent
+  b3 = coef(lm_baseline)["carbs_log"],          # carbs effect
+  b4 = abs(coef(lm_baseline)["insulin_sum"]),   # insulin sensitivity (positive)
+  b5 = coef(lm_baseline)["hr_mean"],            # heart rate
+  b6 = coef(lm_baseline)["hr_missing"],         # HR missing indicator
+  b7 = coef(lm_baseline)["steps_log"]            # steps effect
 )
 
 
 ```
 
 ```{r}
+# Fit non linear regression model
 
+nls_model <- nls(
+  bg.1.00 ~
+    b0 +
+    b1 * exp(b2 * bg_mean_sc) +
+    b3 * carbs_log -
+    b4 * insulin_sum +
+    b5 * hr_mean +
+    b6 * hr_missing -
+    b7 * steps_log,
+  data = train_data,
+  start = start_vals,
+  algorithm = "port",
+  control = nls.control(maxiter = 300, warnOnly = TRUE)
+)
+
+summary(nls_model)
 
 ```
 
