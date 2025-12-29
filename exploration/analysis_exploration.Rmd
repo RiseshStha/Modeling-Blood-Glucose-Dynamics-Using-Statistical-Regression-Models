@@ -375,7 +375,34 @@ ggplot(data.frame(
 
 
 ```
+```{r}
+# Parametric Nonlinear Regression
+```
 
+```{r}
+coef(lm_baseline)
+```
+```{r}
+
+# bgt+1​=​β0​+β1​(bg_mean)β2​+β3​log(1+carbs)−β4​insulin+β5​hr_mean+β6​hr_missing−β7​steps_log.​
+start_vals <- list(
+  b0 = coef(lm_baseline)[1],                 # intercept
+  b1 = coef(lm_baseline)["bg_mean"],         # scale for bg_mean^b2
+  b2 = 1,                                   # exponent (nonlinearity)
+  b3 = coef(lm_baseline)["carbs_log"],       # log(1 + carbs)
+  b4 = coef(lm_baseline)["insulin_sums"],    # insulin (subtracted in model)
+  b5 = coef(lm_baseline)["hr_mean"],         # heart rate mean
+  b6 = coef(lm_baseline)["hr_missing"],      # HR missing indicator
+  b7 = coef(lm_baseline)["steps_log"]        # steps (subtracted in model)
+)
+
+
+```
+
+```{r}
+
+
+```
 
 
 
