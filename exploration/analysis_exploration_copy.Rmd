@@ -1,0 +1,625 @@
+
+#Can nonlinear statistical models improve short-horizon blood glucose prediction using routinely available features?
+
+```{r}
+#installing packages
+# install.packages("tidyverse")
+# install.packages("lubridate")
+# install.packages("skimr")
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(skimr)
+library(GGally)
+library(mgcv)
+library(zoo)
+
+```
+
+
+
+```{r}
+#Starting
+
+data <- read.csv("C:/Users/Acer/OneDrive/Desktop/Research/bg_gam_paper/data/bg_data.csv")
+
+head(data)
+```
+```{r}
+str(data)
+```
+```{r}
+#Summary statistics
+
+summary(data)
+
+skim(data)
+```
+
+
+```{r}
+#checking null values
+colSums(is.na(data))
+```
+
+
+```{r}
+#missing value percentage
+colMeans(is.na(data))*100
+```
+
+
+```{r}
+#distribution of each variable
+data %>%
+  pivot_longer(cols = everything()) %>%
+  ggplot(aes(value)) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  facet_wrap(~name, scales = "free") +
+  theme_minimal()
+```
+
+
+```{r}
+#Correlation matrix
+# Correlation matrix
+cor_mat <- cor(data, use = "complete.obs")
+
+# Pairwise plots
+ggpairs(data)
+
+```
+
+
+
+```{r}
+#Time series awarness
+data %>%
+  mutate(index = row_number()) %>%
+  ggplot(aes(index, bg.1.00)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Blood Glucose One Hour Ahead Over Time",
+       x = "Time Index",
+       y = "bg+1:00")
+
+```
+
+```{r}
+#Non linearity check
+#imp for gam justification
+data %>%
+  ggplot(aes(bg_mean, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme_minimal() +
+  labs(title = "Nonlinear Relationship Between bg_mean and bg+1:00")
+
+```
+
+```{r}
+#Handling Missing Data of hr_mean
+# Missingness percentage
+missing_pct <- mean(is.na(data$hr_mean)) * 100
+missing_pct
+
+```
+```{r}
+# create missing indicator 
+data <- data %>%
+  mutate(
+    hr_missing = ifelse(is.na(hr_mean), 1, 0)
+  )
+
+```
+
+```{r}
+# Median imputation 
+# median is preferred because of skewness of data
+hr_median <- median(data$hr_mean, na.rm = TRUE)
+
+data <- data %>%
+  mutate(
+    hr_mean = ifelse(is.na(hr_mean), hr_median, hr_mean)
+  )
+
+```
+
+```{r}
+# Check remaining missing values
+colSums(is.na(data))
+
+```
+```{r}
+ggplot(data, aes(hr_mean, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  facet_wrap(~hr_missing, labeller = labeller(hr_missing = c("0" = "Observed HR", "1" = "Imputed HR"))) +
+  theme_minimal() +
+  labs(
+    title = "Relationship Between Heart Rate and Future Glucose",
+    x = "hr_mean",
+    y = "bg+1:00"
+  )
+
+```
+```{r}
+#Now log transforming the right skewed data
+# Reduce right skewness
+# 
+# Stabilize variance
+# 
+# Improve model behavior (especially LR & NLR)
+# 
+# Without distorting clinical meaning
+# log1p(x) = log(1 + x)
+
+#applying log transformation 
+data <- data %>%
+  mutate(
+    steps_log = log1p(steps_sum),
+    carbs_log   = log1p(carbs_sum),
+    cals_log    = log1p(cals_sum)
+  )
+
+
+```
+
+
+```{r}
+data %>%
+  select(steps_sum, steps_log, carbs_sum, carbs_log, cals_sum, cals_log) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(value)) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  facet_wrap(~name, scales = "free") +
+  theme_minimal()
+
+```
+```{r}
+ggplot(data, aes(carbs_log, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme_minimal() +
+  labs(
+    title = "Relationship Between log(Carbohydrates) and Future Glucose",
+    x = "log(1 + carbs_sum)",
+    y = "bg+1:00"
+  )
+
+ggplot(data, aes(cals_log, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme_minimal() +
+  labs(
+    title = "Relationship Between log(Calories) and Future Glucose",
+    x = "log(1 + cals_sum)",
+    y = "bg+1:00"
+  )
+
+ggplot(data, aes(steps_log, bg.1.00)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme_minimal() +
+  labs(
+    title = "Relationship Between log(Steps) and Future Glucose",
+    x = "log(1 + steps_sum)",
+    y = "bg+1:00"
+  )
+
+```
+
+```{r}
+mean(data$carbs_sum == 0) * 100
+mean(data$steps_sum == 0) * 100
+mean(data$cals_sum == 0) * 100
+
+
+# < 60% zeros → perfectly fine
+# 
+# 60–85% zeros → still acceptable, but note it
+# 
+# > 85% zeros → consider zero-indicator (optional)
+
+```
+
+```{r}
+#Time-Aware Spliting 
+head(data)
+tail(data)
+
+```
+
+
+```{r}
+n <- nrow(data)
+split_idx <- floor(0.7 * n)
+
+train_data <- data[1:split_idx, ]
+test_data  <- data[(split_idx + 1):n, ]
+
+nrow(train_data)
+nrow(test_data)
+
+
+```
+
+```{r}
+ggplot() +
+  geom_line(data = train_data, aes(x = seq_along(bg.1.00), y = bg.1.00),
+            color = "blue", alpha = 0.6) +
+  geom_line(data = test_data, aes(x = split_idx + seq_along(bg.1.00), y = bg.1.00),
+            color = "red", alpha = 0.6) +
+  theme_minimal() +
+  labs(
+    title = "Time-Aware Train–Test Split of Future Glucose",
+    x = "Time Index",
+    y = "bg+1:00"
+  )
+
+```
+```{r}
+#Building linear regression baseline
+# Output = bg.1.00, 
+# Inputs = bg_mean, insulin_sums, carbs_sum, hr_mean, steps_sum, cals_sum
+
+lm_baseline <- lm(
+  bg.1.00 ~ bg_mean + hr_mean + hr_missing +
+            insulin_sum + carbs_log + steps_log + cals_log,
+  data = train_data
+)
+
+summary(lm_baseline)
+
+```
+```{r}
+#Assumption Diagnostics 
+
+#Residuals vs Fitted
+plot(lm_baseline, which = 1)
+
+#QQ Plot
+plot(lm_baseline, which = 2)
+
+
+```
+
+```{r}
+#Predict on Test Data
+
+test_pred_lm <- predict(lm_baseline, newdata = test_data)
+
+```
+
+
+```{r}
+# Evaluate Performance on Test Set
+rmse_lm <- sqrt(mean((test_data$bg.1.00 - test_pred_lm)^2))
+mae_lm  <- mean(abs(test_data$bg.1.00 - test_pred_lm))
+
+rmse_lm
+mae_lm
+
+```
+```{r}
+# Visualization: Predicted vs Observed
+
+ggplot(data.frame(
+  observed = test_data$bg.1.00,
+  predicted = test_pred_lm
+), aes(observed, predicted)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  theme_minimal() +
+  labs(
+    title = "Linear Regression: Observed vs Predicted (Test Set)",
+    x = "Observed bg+1:00",
+    y = "Predicted bg+1:00"
+  )
+
+```
+```{r}
+#Fit GAM model in training data
+gam_model <- gam(
+  bg.1.00 ~
+    s(bg_mean, k = 10) +
+    s(hr_mean, k = 10) +
+    hr_missing +
+    s(insulin_sum, k = 10) +
+    s(carbs_log, k = 10) +
+    s(steps_log, k = 10) +
+    s(cals_log, k = 10),
+  data = train_data,
+  method = "REML"
+)
+
+
+summary(gam_model)
+
+```
+
+```{r}
+par(mfrow = c(2, 3))
+plot(gam_model, shade = TRUE, seWithMean = TRUE)
+par(mfrow = c(1, 1))
+
+```
+```{r}
+#GAM on test data
+test_pred_gam <- predict(gam_model, newdata = test_data)
+
+```
+
+```{r}
+rmse_gam <- sqrt(mean((test_data$bg.1.00 - test_pred_gam)^2))
+mae_gam  <- mean(abs(test_data$bg.1.00 - test_pred_gam))
+
+rmse_gam
+mae_gam
+
+```
+```{r}
+ggplot(data.frame(
+  observed = test_data$bg.1.00,
+  predicted = test_pred_gam
+), aes(observed, predicted)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  theme_minimal() +
+  labs(
+    title = "GAM: Observed vs Predicted (Test Set)",
+    x = "Observed bg+1:00",
+    y = "Predicted bg+1:00"
+  )
+
+
+```
+```{r}
+# Parametric Nonlinear Regression
+```
+
+```{r}
+coef(lm_baseline)
+```
+
+```{r}
+# b1 (scale) and b2 (power) are highly correlated
+# At initial values (especially b2 = 1), the gradient becomes singular
+#So scale bg_mean 
+bg_mean_mean <- mean(train_data$bg_mean)
+bg_mean_sd   <- sd(train_data$bg_mean)
+
+train_data <- train_data %>%
+  mutate(bg_mean_sc = (bg_mean - bg_mean_mean) / bg_mean_sd)
+
+test_data <- test_data %>%
+  mutate(bg_mean_sc = (bg_mean - bg_mean_mean) / bg_mean_sd)
+
+```
+
+
+```{r}
+
+# bgt+1​=​β0​+β1​(bg_mean)β2​+β3​log(1+carbs)−β4​insulin+β5​hr_mean+β6​hr_missing−β7​steps_log.​
+start_vals <- list(
+  b0 = mean(train_data$bg.1.00, na.rm = TRUE),  # baseline glucose
+  b1 = 1,                                      # scale for bg_mean^b2
+  b2 = 0.1,                                    # nonlinear exponent
+  b3 = coef(lm_baseline)["carbs_log"],          # carbs effect
+  b4 = abs(coef(lm_baseline)["insulin_sum"]),   # insulin sensitivity (positive)
+  b5 = coef(lm_baseline)["hr_mean"],            # heart rate
+  b6 = coef(lm_baseline)["hr_missing"],         # HR missing indicator
+  b7 = coef(lm_baseline)["steps_log"]            # steps effect
+)
+
+
+```
+
+```{r}
+# Fit non linear regression model
+
+nls_model <- nls(
+  bg.1.00 ~
+    b0 +
+    b1 * exp(b2 * bg_mean_sc) +
+    b3 * carbs_log -
+    b4 * insulin_sum +
+    b5 * hr_mean +
+    b6 * hr_missing -
+    b7 * steps_log,
+  data = train_data,
+  start = start_vals,
+  algorithm = "port",
+  control = nls.control(maxiter = 300, warnOnly = TRUE)
+)
+
+summary(nls_model)
+
+```
+```{r}
+#Remove the free nonlinear term
+train_data <- train_data %>%
+  mutate(bg_exp = exp(bg_mean_sc))
+
+```
+
+```{r}
+
+nl_constrained <- lm(
+  bg.1.00 ~ bg_exp +
+            carbs_log -
+            insulin_sum +
+            hr_mean +
+            hr_missing,
+  data = train_data
+)
+summary(nl_constrained)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+#Time series awarness
+plot_timeseries <- function(vars){
+  df1 <- data.frame(Index = 1:nrow(data), data[, vars, drop = FALSE])
+  names(df1)[-1] <- vars
+
+  df1_long <- reshape2::melt(df1, id.vars = "Index")
+  
+  ggplot(df1_long, aes(Index, value)) +
+    geom_line() +
+    facet_wrap(~variable, ncol = 1, scales = "free_y", drop = FALSE) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          strip.text = element_text(size = 14, face = "bold"))
+}
+
+
+#breaking six input variables into two plot for better visuallization
+vars1 <- c("bg_mean", "insulin_sum", "carbs_sum")
+vars2 <- c("hr_mean", "steps_sum", "cals_sum")
+
+plot_timeseries(vars1)
+plot_timeseries(vars2)
+```
+
+```{r}
+#Rolling average 
+vars <- c(
+  "bg_mean",
+  "hr_mean",
+  "insulin_sum",
+  "steps_sum",
+  "carbs_sum",
+  "cals_sum"
+)
+
+window_size <- 1000
+
+data <- data %>%
+  mutate(index = row_number())
+
+for (v in vars) {
+  data[[paste0(v, "_roll_1000")]] <-
+    rollmean(data[[v]], k = window_size, fill = NA, align = "center")
+}
+
+
+```
+
+```{r}
+#Rolling averages for all independent variables
+#for bg_mean
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = bg_mean), alpha = 0.2) +
+  geom_line(aes(y = bg_mean_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "bg_mean: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "bg_mean"
+  )
+
+#for hr_mean
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = hr_mean), alpha = 0.2) +
+  geom_line(aes(y = hr_mean_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "hr_mean: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "hr_mean"
+  )
+
+#for insulin_sum
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = insulin_sum), alpha = 0.2) +
+  geom_line(aes(y = insulin_sum_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "insulin_sum: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "insulin_sum"
+  )
+
+#for steps_sum
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = steps_sum), alpha = 0.2) +
+  geom_line(aes(y = steps_sum_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "steps_sum: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "steps_sum"
+  )
+
+#for carbs_sum
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = carbs_sum), alpha = 0.2) +
+  geom_line(aes(y = carbs_sum_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "carbs_sum: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "carbs_sum"
+  )
+
+#for cals_sum
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = cals_sum), alpha = 0.2) +
+  geom_line(aes(y = cals_sum_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "cals_sum: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "cals_sum"
+  )
+```
+
+
+```{r}
+data <- data %>%
+  mutate(
+    index = row_number(),
+    bg_roll_1000 = rollmean(bg.1.00, k = 1000, fill = NA, align = "center")
+  )
+
+```
+
+
+```{r}
+ggplot(data, aes(x = index)) +
+  geom_line(aes(y = bg.1.00), alpha = 0.2) +
+  geom_line(aes(y = bg_roll_1000), linewidth = 1) +
+  theme_minimal() +
+  labs(
+    title = "Blood Glucose One Hour Ahead: Raw and Smoothed Trend",
+    x = "Time Index",
+    y = "bg+1:00"
+  )
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
