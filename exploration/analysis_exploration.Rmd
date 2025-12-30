@@ -390,6 +390,59 @@ nls_model <- tryCatch({
 if(!is.null(nls_model)) summary(nls_model)
 ```
 
+### Evaluation (NLS)
+
+```{r eval-nls}
+# Predict on test data
+# Note: NLS prediction requires the exact same column names/features
+test_pred_nls <- tryCatch({
+  predict(nls_model, newdata = test_data)
+}, error = function(e) {
+  warning("NLS Prediction failed: ", e$message)
+  return(rep(NA, nrow(test_data)))
+})
+
+# Calculate metrics only if prediction was successful
+if (any(is.na(test_pred_nls))) {
+  rmse_nls <- NA
+  mae_nls <- NA
+} else {
+  rmse_nls <- sqrt(mean((test_data$bg.1.00 - test_pred_nls)^2))
+  mae_nls  <- mean(abs(test_data$bg.1.00 - test_pred_nls))
+}
+
+cat("NLS - RMSE:", rmse_nls, "\n")
+cat("NLS - MAE: ", mae_nls, "\n")
+```
+
+# Model Comparison
+
+We consolidate the results to determine the best performing model.
+
+```{r model-comparison}
+# Create comparison table
+results <- data.frame(
+  Model = c("Linear Regression", "GAM", "Nonlinear Regression"),
+  RMSE = c(rmse_lm, rmse_gam, rmse_nls),
+  MAE = c(mae_lm, mae_gam, mae_nls)
+)
+
+# Display tabular results
+knitr::kable(results, digits = 3, caption = "Model Performance Comparison (Test Set)")
+
+# Visual comparison
+results_long <- results %>%
+  pivot_longer(cols = c("RMSE", "MAE"), names_to = "Metric", values_to = "Value") %>%
+  filter(!is.na(Value)) # Remove NA if NLS failed
+
+ggplot(results_long, aes(x = Model, y = Value, fill = Model)) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.8) +
+  facet_wrap(~Metric, scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Model Performance Comparison", y = "Error Value") +
+  theme(legend.position = "none")
+```
+
 # Additional Analysis: Trends and Rolling Averages
 
 We compute rolling averages (window = 1000) to visualize long-term trends in predictors and the target variable.
@@ -428,4 +481,11 @@ p_hr
 
 # Conclusion
 
-This exploration highlights the nonlinear nature of blood glucose dynamics. The GAM model suggests significant nonlinear effects for `bg_mean` and potentially `insulin_sum`. The comparison between LM, GAM, and NLS provides a strong foundation for selecting the simplistic yet effective model for the final formulation.
+This exploration highlights the nonlinear nature of blood glucose dynamics. By systematically comparing Linear Regression, GAM, and Nonlinear Regression, we have established a framework for predictive modeling. 
+
+The **Model Comparison** section explicitly demonstrates the performance trade-offs between linear simplicity and nonlinear flexibility. If the GAM or NLS models show lower RMSE/MAE, the hypothesis that "nonlinear models improve prediction" is supported. Specifically:
+- **Linear Regression**: Serves as a robust baseline.
+- **GAM**: Captures free-form nonlinearities (splines).
+- **NLS**: Captures structured nonlinearities (exponential decay/growth).
+
+The final selection should balance predictive accuracy (lowest RMSE) with interpretability and computational stability.
