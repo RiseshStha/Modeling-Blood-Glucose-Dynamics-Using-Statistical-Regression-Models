@@ -12,11 +12,13 @@ library(zoo)
 
 # 1. Load Data
 # Using relative path assuming script is run from project root or scripts/ folder
-# Adjust path if necessary
-input_path <- "data/bg_data.csv" 
+# 1. Load Data
+# Try loading from project root
+input_path <- "C:/Users/Acer/OneDrive/Desktop/Research/bg_gam_paper/data/bg_data.csv" 
+
+
 if(!file.exists(input_path)) {
-  # Try looking one level up if run from scripts/
-  input_path <- "../data/bg_data.csv"
+  stop("Could not find bg_data.csv in 'data/' or '../data/'")
 }
 
 data <- read.csv(input_path)
@@ -61,5 +63,8 @@ cat("Training Samples:", nrow(train_data), "\n")
 cat("Testing Samples: ", nrow(test_data), "\n")
 
 # Save processed objects for other scripts to use
-# We can save as an RData file for quick loading
-save(data, train_data, test_data, file = "data/processed_data.RData")
+# Save to the same data directory where input was found
+data_dir <- dirname(input_path)
+output_path <- file.path(data_dir, "processed_data.RData")
+save(data, train_data, test_data, file = output_path)
+cat("Processed data saved to:", normalizePath(output_path), "\n")

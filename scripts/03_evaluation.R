@@ -7,8 +7,21 @@ library(knitr)
 library(ggplot2)
 
 # Load data and models
-load("data/processed_data.RData")
-load("data/models.RData")
+# Determine data data and figures directories
+if (file.exists("data/processed_data.RData")) {
+  root_dir <- "."
+} else if (file.exists("../data/processed_data.RData")) {
+  root_dir <- ".."
+} else {
+  stop("Required data/models missing. Please run scripts 01 and 02 first.")
+}
+
+data_dir <- file.path(root_dir, "data")
+tables_dir <- file.path(root_dir, "tables")
+figures_dir <- file.path(root_dir, "figures")
+
+load(file.path(data_dir, "processed_data.RData"))
+load(file.path(data_dir, "models.RData"))
 
 # --- Helper Function for Evaluation ---
 calc_metrics <- function(actual, predicted) {
@@ -50,7 +63,8 @@ results <- data.frame(
 print(kable(results, digits = 3, caption = "Test Set Performance"))
 
 # Save Results to CSV
-write.csv(results, "tables/model_comparison.csv", row.names = FALSE)
+# Save Results to CSV
+write.csv(results, file.path(tables_dir, "model_comparison.csv"), row.names = FALSE)
 
 # --- Visualization ---
 
@@ -66,7 +80,7 @@ p1 <- ggplot(results_long, aes(x = Model, y = Value, fill = Model)) +
   labs(title = "Model Performance Metric Comparison", y = "Error Value") +
   theme(legend.position = "none")
 
-ggsave("figures/model_comparison_bar.png", p1, width = 8, height = 6)
+ggsave(file.path(figures_dir, "model_comparison_bar.png"), p1, width = 8, height = 6)
 
 # 2. Observed vs Predicted Plot (For best performing model, or all)
 # Let's plot GAM vs Observed as it is often the most visually interesting
@@ -84,6 +98,6 @@ p2 <- ggplot(comparison_df, aes(x = Observed)) +
   theme_minimal() +
   labs(title = "Observed vs Predicted", y = "Predicted BG", color = "Model")
 
-ggsave("figures/obs_vs_pred.png", p2, width = 8, height = 6)
+ggsave(file.path(figures_dir, "obs_vs_pred.png"), p2, width = 8, height = 6)
 
 cat("Evaluation complete. Results saved to tables/ and figures/.\n")

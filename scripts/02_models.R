@@ -6,7 +6,16 @@ library(mgcv)
 library(minpack.lm) # For nlsLM robustness if needed
 
 # Load processed data
-load("data/processed_data.RData")
+# Determine data directory
+if (file.exists("data/processed_data.RData")) {
+  data_dir <- "data"
+} else if (file.exists("../data/processed_data.RData")) {
+  data_dir <- "../data"
+} else {
+  stop("Processed data file not found! Please run 'scripts/01_preprocessing.R' first.")
+}
+
+load(file.path(data_dir, "processed_data.RData"))
 
 # --- Model 1: Linear Regression (Baseline) ---
 cat("Fitting Linear Regression...\n")
@@ -68,5 +77,6 @@ nls_model <- tryCatch({
 
 
 # Save models
-save(lm_model, gam_model, nls_model, file = "data/models.RData")
-cat("Models saved to data/models.RData\n")
+output_path <- file.path(data_dir, "models.RData")
+save(lm_model, gam_model, nls_model, file = output_path)
+cat("Models saved to:", normalizePath(output_path), "\n")
