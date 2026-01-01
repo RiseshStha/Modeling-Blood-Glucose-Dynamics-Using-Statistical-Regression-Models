@@ -7,15 +7,17 @@ library(minpack.lm) # For nlsLM robustness if needed
 
 # Load processed data
 # Determine data directory
-if (file.exists("data/processed_data.RData")) {
-  data_dir <- "data"
+if (file.exists("C:/Users/Acer/OneDrive/Desktop/Research/bg_gam_paper/data/processed_data.RData")) {
+  data_path <- "C:/Users/Acer/OneDrive/Desktop/Research/bg_gam_paper/data/processed_data.RData"
+} else if (file.exists("data/processed_data.RData")) {
+  data_path <- "data/processed_data.RData"
 } else if (file.exists("../data/processed_data.RData")) {
-  data_dir <- "../data"
+  data_path <- "../data/processed_data.RData"
 } else {
   stop("Processed data file not found! Please run 'scripts/01_preprocessing.R' first.")
 }
 
-load(file.path(data_dir, "processed_data.RData"))
+load(data_path)
 
 # --- Model 1: Linear Regression (Baseline) ---
 cat("Fitting Linear Regression...\n")
@@ -77,6 +79,7 @@ nls_model <- tryCatch({
 
 
 # Save models
+data_dir <- dirname(data_path)
 output_path <- file.path(data_dir, "models.RData")
 save(lm_model, gam_model, nls_model, file = output_path)
 cat("Models saved to:", normalizePath(output_path), "\n")

@@ -8,17 +8,21 @@ library(ggplot2)
 
 # Load data and models
 # Determine data data and figures directories
-if (file.exists("data/processed_data.RData")) {
-  root_dir <- "."
+if (file.exists("C:/Users/Acer/OneDrive/Desktop/Research/bg_gam_paper/data/processed_data.RData")) {
+  data_dir <- "C:/Users/Acer/OneDrive/Desktop/Research/bg_gam_paper/data"
+  tables_dir <- "C:/Users/Acer/OneDrive/Desktop/Research/bg_gam_paper/tables"
+  figures_dir <- "C:/Users/Acer/OneDrive/Desktop/Research/bg_gam_paper/figures"
+} else if (file.exists("data/processed_data.RData")) {
+  data_dir <- "data"
+  tables_dir <- "tables"
+  figures_dir <- "figures"
 } else if (file.exists("../data/processed_data.RData")) {
-  root_dir <- ".."
+  data_dir <- "../data"
+  tables_dir <- "../tables"
+  figures_dir <- "../figures"
 } else {
   stop("Required data/models missing. Please run scripts 01 and 02 first.")
 }
-
-data_dir <- file.path(root_dir, "data")
-tables_dir <- file.path(root_dir, "tables")
-figures_dir <- file.path(root_dir, "figures")
 
 load(file.path(data_dir, "processed_data.RData"))
 load(file.path(data_dir, "models.RData"))
