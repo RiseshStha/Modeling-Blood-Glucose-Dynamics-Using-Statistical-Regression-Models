@@ -3,7 +3,7 @@
 
 library(tidyverse)
 library(mgcv)
-library(minpack.lm) # For nlsLM robustness if needed
+#library(minpack.lm) # For nlsLM robustness if needed
 
 # Load processed data
 # Determine data directory
